@@ -1,7 +1,8 @@
 import numpy as np
+from tqdm import tqdm
 
 
-def infer(image, window_shape, f, overlap=1):
+def infer(image, window_shape, f, overlap=1,  verbose=0):
     """
     :param image: a 3D or 4D numpy array, channel last, shape = (Z, Y, X, C) or (Z, Y, X)
                   if 3D array, a channel will be added.
@@ -10,6 +11,7 @@ def infer(image, window_shape, f, overlap=1):
     taking a single argument, a 5D numpy array as input, channel last, shape = (B, Z, Y, X, C)
     returning an array of same shape, with fixed number of channel.
     :param overlap: 3D tuple or int, values can be 1 or 2 (1 = no overlap, 2 = overlap)
+    :param verbose: verbosity, int, 0 = silent, 1 = show progress
     :return: a 3D or 4D numpy array
     """
     # parameters processing
@@ -53,9 +55,10 @@ def infer(image, window_shape, f, overlap=1):
     result = None
     # center border
     cb = strides - (strides // overlap)
-    for z in range(0, image_p_shape[0]-strides[0], strides[0]):
-        for y in range(0, image_p_shape[1]-strides[1], strides[1]):
-            for x in range(0, image_p_shape[2]-strides[2], strides[2]):
+    for z in tqdm(range(0, image_p_shape[0]-strides[0], strides[0]), disable=(not verbose > 0)):
+        for y in tqdm(range(0, image_p_shape[1]-strides[1], strides[1]), disable=(not verbose > 0), leave=False):
+            for x in tqdm(range(0, image_p_shape[2]-strides[2], strides[2]), disable=(not verbose > 0), leave=False):
+
                 # patch prediction
                 p = image_p[z:z+window_shape[0], y:y+window_shape[1], x:x+window_shape[2]]
                 if not (np.array(p.shape)[0:3] == window_shape).all():
@@ -77,12 +80,13 @@ def infer(image, window_shape, f, overlap=1):
     return result
 
 
-def infer2d(image, window_shape, f, overlap=1):
+def infer2d(image, window_shape, f, overlap=1, verbose=0):
     """
     :param image: a 2D or 3D numpy array, channel last, shape = (Y, X, C) or (Y, X)
     :param window_shape: a 2D numpy array
     :param f: see infer()
     :param overlap: see infer()
+    :param verbose: see infer()
     :return:
     """
     assert len(image.shape) in [2, 3], \
@@ -98,4 +102,4 @@ def infer2d(image, window_shape, f, overlap=1):
     if len(overlap) == 2:
         overlap = (1,) + overlap
 
-    return infer(image, window_shape, f, overlap)[0]
+    return infer(image, window_shape, f, overlap, verbose)[0]

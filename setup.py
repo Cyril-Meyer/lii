@@ -3,11 +3,11 @@ import setuptools
 with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
-requirements = ["numpy"]
+requirements = ["numpy", "tqdm"]
 
 setuptools.setup(
     name="lii",
-    version="1.0.0",
+    version="1.0.1",
     author="Cyril Meyer",
     author_email="contact@cyrilmeyer.eu",
     description="Large Image Inference",

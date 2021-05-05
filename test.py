@@ -34,6 +34,8 @@ array_3d_04 = np.arange(33*33*33).reshape((33, 33, 33, 1))
 array_3d_05 = np.arange(24*1394*1832).reshape((24, 1394, 1832))
 
 apply = apply_copy
+lii.infer(array_3d_05, (16, 512, 512), apply, (2, 2, 2), 1)
+
 assert((lii.infer2d(array_2d_01, (16, 16), apply, 1)[:, :, 0] == array_2d_01).all())
 assert((lii.infer2d(array_2d_01, (16, 16), apply, 2)[:, :, 0] == array_2d_01).all())
 assert((lii.infer2d(array_2d_02, (16, 16), apply, 1)[:, :, 0] == array_2d_02).all())
