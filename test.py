@@ -19,6 +19,14 @@ def apply_copy(x):
     return np.copy(x)
 
 
+def apply_copy_border_0(x):
+    x = np.copy(x)
+    x[0:2, 0, 0] = 0
+    x[0, 0:2, 0] = 0
+    x[0, 0, 0:2] = 0
+    return x
+
+
 def apply_model_2d(x):
     x = x[0]
     return np.expand_dims(model_2d.predict(x), 0)
@@ -33,7 +41,11 @@ array_3d_03 = np.arange(31*31*31).reshape((31, 31, 31, 1))
 array_3d_04 = np.arange(33*33*33).reshape((33, 33, 33, 1))
 array_3d_05 = np.arange(24*1394*1832).reshape((24, 1394, 1832))
 
+apply = apply_copy_border_0
+assert((lii.infer(array_3d_05, (16, 512, 512), apply, (2, 2, 2))[:, :, :, 0] == array_3d_05).all())
+
 apply = apply_copy
+lii.infer(array_3d_05, (16, 512, 512), apply, (2, 2, 2), 1)
 lii.infer(array_3d_05, (16, 512, 512), apply, (2, 2, 2), 1)
 
 assert((lii.infer2d(array_2d_01, (16, 16), apply, 1)[:, :, 0] == array_2d_01).all())
