@@ -8,10 +8,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 model_2d = tf.keras.Sequential()
-model_2d.add(tf.keras.Input((None, None, 1)))
+model_2d.add(tf.keras.layers.InputLayer((None, None, 1)))
 
 model_3d = tf.keras.Sequential()
-model_3d.add(tf.keras.Input((None, None, None, 1)))
+model_3d.add(tf.keras.layers.InputLayer((None, None, None, 1)))
 model_3d.add(tf.keras.layers.Lambda(lambda x: x))
 
 
@@ -40,6 +40,9 @@ array_3d_02 = np.arange(32*32*31).reshape((32, 32, 31, 1))
 array_3d_03 = np.arange(31*31*31).reshape((31, 31, 31, 1))
 array_3d_04 = np.arange(33*33*33).reshape((33, 33, 33, 1))
 array_3d_05 = np.arange(24*1394*1832).reshape((24, 1394, 1832))
+array_3d_06 = np.arange(80*1536*1280).reshape((80, 1536, 1280))
+
+assert((lii.infer(array_3d_06, (16, 1536, 1280), apply_copy_border_0, (2, 1, 1))[:, :, :, 0] == array_3d_06).all())
 
 apply = apply_copy_border_0
 assert((lii.infer(array_3d_05, (16, 512, 512), apply, (2, 2, 2))[:, :, :, 0] == array_3d_05).all())

@@ -55,6 +55,14 @@ def infer(image, window_shape, f, overlap=1,  verbose=0):
     result = None
     # center border
     cb = strides - (strides // overlap)
+
+    '''
+    print(len(range(0, image_p_shape[0]-strides[0], strides[0])) *
+          len(range(0, image_p_shape[1]-strides[1], strides[1])) *
+          len(range(0, image_p_shape[2]-strides[2], strides[2])))
+    print(image.shape, image_p.shape)
+    '''
+
     for z in tqdm(range(0, image_p_shape[0]-strides[0], strides[0]), disable=(not verbose > 0)):
         for y in tqdm(range(0, image_p_shape[1]-strides[1], strides[1]), disable=(not verbose > 0), leave=False):
             for x in tqdm(range(0, image_p_shape[2]-strides[2], strides[2]), disable=(not verbose > 0), leave=False):
