@@ -7,7 +7,7 @@ requirements = ["numpy", "tqdm"]
 
 setuptools.setup(
     name="lii",
-    version="1.0.1",
+    version="1.0.2",
     author="Cyril Meyer",
     author_email="contact@cyrilmeyer.eu",
     description="Large Image Inference",
