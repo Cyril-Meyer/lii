@@ -2,10 +2,86 @@ import numpy as np
 from tqdm import tqdm
 
 
-def fast_infer(image, window_shape, f, overlap=1, verbose=0):
+def infer_out_smaller(image, window_in_shape, window_out_shape, f, verbose=0):
     """
-    fast_infer is similar to infer, but with a precondition :
+    infer on large image with shrinking inference function.
+    :param image: a 3D or 4D numpy array, channel last, shape = (Z, Y, X, C) or (Z, Y, X)
+                  if 3D array, a channel will be added.
+    :param window_in_shape: a 3D tuple, a 3D array or an int (if same value for all axis)
+    :param window_out_shape: a 3D tuple, a 3D array or an int (if same value for all axis)
+    :param f: a function or class to apply,
+    taking a single argument, a 5D numpy array as input, channel last, shape = window_in_shape
+    returning an array of window_out_shape.
+    :param verbose: verbosity, int, 0 = silent, 1 = show progress, 2 = show debug
+    :return: a 3D or 4D numpy array
+    :precondition window_in_shape > window_out_shape.
+    """
+    # parameters processing
+    window_in_shape = np.array(window_in_shape)
+    window_out_shape = np.array(window_out_shape)
+    size_difference = window_in_shape - window_out_shape
+    strides = np.array(window_out_shape)
+
+    # assertion
+    assert len(image.shape) in [3, 4], \
+        f'image shape {image.shape} invalid'
+    assert len(window_in_shape) == 3, \
+        f'window in shape {window_in_shape} invalid'
+    assert len(window_out_shape) == 3, \
+        f'window out shape {window_out_shape} invalid'
+    assert (np.array(size_difference) > 0).all(), \
+        f"window_in_shape {window_in_shape} <= window_out_shape {window_out_shape}"
+
+    # add a color dim if necessary
+    n_dim_in = len(image.shape)
+    if n_dim_in == 3:
+        image = np.expand_dims(image, -1)
+    image_shape = np.array(image.shape)[0:3]
+    image_out_shape = image_shape - size_difference
+
+    assert (image_out_shape % np.array(window_out_shape) == [0, 0, 0]).all(), \
+        f"image shape {image_shape} - size_difference {size_difference} :" \
+        f"{image_out_shape} cannot be divided by window_out_shape {window_out_shape}"
+
+    # loop and infer
+    result = None
+
+    z_max = image_out_shape[0]
+    y_max = image_out_shape[1]
+    x_max = image_out_shape[2]
+
+    for z in tqdm(range(0, z_max, strides[0]), disable=(not verbose > 0)):
+        for y in tqdm(range(0, y_max, strides[1]), disable=(not verbose > 0), leave=False):
+            for x in tqdm(range(0, x_max, strides[2]), disable=(not verbose > 0), leave=False):
+                # patch prediction
+                p = image[z:z + window_in_shape[0], y:y + window_in_shape[1], x:x + window_in_shape[2]]
+
+                if not (np.array(p.shape)[0:3] == window_in_shape).all():
+                    raise LookupError
+
+                p = f(np.expand_dims(p, 0))[0]
+
+                if result is None:
+                    result = np.zeros((image_out_shape[0], image_out_shape[1], image_out_shape[2], p.shape[-1]), dtype=p.dtype)
+                result[z:z+p.shape[0], y:y+p.shape[1], x:x+p.shape[2], :] = p
+
+    return result
+
+
+def infer(image, window_shape, f, overlap=1, verbose=0):
+    """
+    infer on large image.
+    :param image: a 3D or 4D numpy array, channel last, shape = (Z, Y, X, C) or (Z, Y, X)
+                  if 3D array, a channel will be added.
+    :param window_shape: a 3D tuple, a 3D array or an int (if same value for all axis)
+    :param f: a function or class to apply,
+    taking a single argument, a 5D numpy array as input, channel last, shape = (B, Z, Y, X, C)
+    returning an array of same shape, with fixed number of channel.
+    :param overlap: 3D tuple or int, values can be 1 or 2 (1 = no overlap, 2 = overlap)
+    :param verbose: verbosity, int, 0 = silent, 1 = show progress, 2 = show debug
+    :return: a 3D or 4D numpy array
     :precondition image.shape must be multiple of window_shape.
+    infer is similar to infer_pad but with precondition.
     """
     # parameters processing
     if isinstance(overlap, int):
@@ -30,12 +106,10 @@ def fast_infer(image, window_shape, f, overlap=1, verbose=0):
     n_dim_in = len(image.shape)
     if n_dim_in == 3:
         image = np.expand_dims(image, -1)
-
-    # assertion : fast_infer precondition
-    assert (np.array(image.shape[0:3]) % np.array(window_shape) == [0, 0, 0]).all(), \
-        f"image shape {image.shape} cannot be divided by window_shape {window_shape}"
-
     image_shape = np.array(image.shape)[0:3]
+
+    assert (image_shape % np.array(window_shape) == [0, 0, 0]).all(), \
+        f"image shape {image.shape} cannot be divided by window_shape {window_shape}"
 
     # loop and infer
     result = None
@@ -101,8 +175,9 @@ def fast_infer(image, window_shape, f, overlap=1, verbose=0):
     return result
 
 
-def infer(image, window_shape, f, overlap=1, verbose=0):
+def infer_pad(image, window_shape, f, overlap=1, verbose=0):
     """
+    infer on large image with arbitrary image and window shapes.
     :param image: a 3D or 4D numpy array, channel last, shape = (Z, Y, X, C) or (Z, Y, X)
                   if 3D array, a channel will be added.
     :param window_shape: a 3D tuple, a 3D array or an int (if same value for all axis)
@@ -112,6 +187,8 @@ def infer(image, window_shape, f, overlap=1, verbose=0):
     :param overlap: 3D tuple or int, values can be 1 or 2 (1 = no overlap, 2 = overlap)
     :param verbose: verbosity, int, 0 = silent, 1 = show progress, 2 = show debug
     :return: a 3D or 4D numpy array
+    infer_pad is similar to infer but without precondition.
+    padding is added to the input image.
     """
     # parameters processing
     if isinstance(overlap, int):
@@ -190,13 +267,13 @@ def infer(image, window_shape, f, overlap=1, verbose=0):
     return result
 
 
-def infer2d(image, window_shape, f, overlap=1, verbose=0):
+def infer_2d(image, window_shape, f, overlap=1, verbose=0):
     """
     :param image: a 2D or 3D numpy array, channel last, shape = (Y, X, C) or (Y, X)
     :param window_shape: a 2D numpy array
-    :param f: see infer()
-    :param overlap: see infer()
-    :param verbose: see infer()
+    :param f: see infer_pad
+    :param overlap: see infer_pad
+    :param verbose: see infer_pad
     :return:
     """
     assert len(image.shape) in [2, 3], \
