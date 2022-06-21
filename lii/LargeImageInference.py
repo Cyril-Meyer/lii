@@ -68,7 +68,7 @@ def infer_out_smaller(image, window_in_shape, window_out_shape, f, verbose=0):
     return result
 
 
-def infer(image, window_shape, f, overlap=1, verbose=0):
+def infer(image, window_shape, f, overlap=1, verbose=0, dtype=None):
     """
     infer on large image.
     :param image: a 3D or 4D numpy array, channel last, shape = (Z, Y, X, C) or (Z, Y, X)
@@ -131,8 +131,11 @@ def infer(image, window_shape, f, overlap=1, verbose=0):
 
                 p = f(np.expand_dims(p, 0))[0]
 
+                if dtype is None:
+                    dtype = p.dtype
+
                 if result is None:
-                    result = np.zeros((image_shape[0], image_shape[1], image_shape[2], p.shape[-1]), dtype=p.dtype)
+                    result = np.zeros((image_shape[0], image_shape[1], image_shape[2], p.shape[-1]), dtype=dtype)
 
                 # keep center
                 z_, y_, x_ = z, y, x
